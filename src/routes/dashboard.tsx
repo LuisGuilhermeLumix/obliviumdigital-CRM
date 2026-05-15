@@ -8,7 +8,6 @@ import {
   BadgeDollarSign,
   ShoppingCart,
   MessageCircle,
-  Send,
   Store,
 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
@@ -34,7 +33,7 @@ function DashboardPage() {
   return (
     <AppLayout title="Dashboard">
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <MetricCard
             label="Carrinhos Abandonados"
             icon={ShoppingCart}
@@ -42,17 +41,11 @@ function DashboardPage() {
             value={formatNumber(m.carrinhosAbandonados)}
           />
           <MetricCard
-            label="Disparos Feitos"
-            icon={Send}
-            loading={loading}
-            value={formatNumber(m.disparosFeitos)}
-          />
-          <MetricCard
             label="Taxa de Resposta"
             icon={MessageCircle}
             variant="brand"
             loading={loading}
-            value={formatPercent(m.taxaResposta, 1)}
+            value={formatPercent(m.taxaResposta, 2)}
           />
           <MetricCard
             label="Vendas Recuperadas"
@@ -66,7 +59,7 @@ function DashboardPage() {
             icon={Target}
             variant="brand"
             loading={loading}
-            value={formatPercent(m.taxaConversao, 1)}
+            value={formatPercent(m.taxaConversao, 2)}
           />
         </div>
 
@@ -104,7 +97,7 @@ function DashboardPage() {
             icon={Wallet}
             variant="brand2"
             loading={loading}
-            value={formatPercent(m.faturamentoSobFrontPct, 1)}
+            value={formatPercent(m.faturamentoSobFrontPct, 2)}
             subInfo="Recuperado vs. faturamento total"
           />
         </div>

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { AppLayout } from "@/components/AppLayout";
+import { getProductColor } from "@/lib/colors";
 
 export const Route = createFileRoute("/pipeline")({
   head: () => ({
@@ -29,26 +30,6 @@ interface ColumnDef {
   label: string;
   color: string;
   bg: string;
-}
-
-const PRODUCT_COLORS = [
-  { bg: "#1e3a5f", text: "#80d7f8" },
-  { bg: "#3b1f5e", text: "#c084fc" },
-  { bg: "#1a4731", text: "#4ade80" },
-  { bg: "#4a1f1f", text: "#f87171" },
-  { bg: "#3d2e0a", text: "#fbbf24" },
-  { bg: "#1a3d4a", text: "#22d3ee" },
-  { bg: "#3d1a3d", text: "#f472b6" },
-  { bg: "#2d3d1a", text: "#a3e635" },
-];
-
-function getProductColor(product: string): { bg: string; text: string } {
-  let hash = 0;
-  for (let i = 0; i < product.length; i++) {
-    hash = product.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % PRODUCT_COLORS.length;
-  return PRODUCT_COLORS[index];
 }
 
 const COLUMNS: ColumnDef[] = [

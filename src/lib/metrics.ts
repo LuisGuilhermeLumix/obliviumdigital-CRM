@@ -28,12 +28,6 @@ export function calcAbandonedCarts(rows: CRMRow[]): number {
   return rows.filter((r) => r.Event === 'abandoned_cart').length
 }
 
-export function calcDisparosFeitos(rows: CRMRow[]): number {
-  return rows.filter(
-    (r) => r.Event === 'abandoned_cart' && r.status !== null && r.status !== '' && r.status !== undefined,
-  ).length
-}
-
 export function calcResponseRate(rows: CRMRow[]): number {
   const disparos = rows.filter(
     (r) => r.Event === 'abandoned_cart' && r.status !== null && r.status !== '' && r.status !== undefined,

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
 import { useLeads, LeadRow } from "@/hooks/useLeads";
 import { formatCurrency, formatDateLong, formatNumber } from "@/lib/format";
+import { getProductColor } from "@/lib/colors";
 
 export function LeadsTable() {
   const [search, setSearch] = useState("");
@@ -93,8 +94,9 @@ export function LeadsTable() {
               </div>
               <div className="text-xs text-[#888] font-mono truncate">{lead.number}</div>
               <div className="text-xs text-[#888] truncate">{lead.email}</div>
-              <div className="text-xs text-[#666]">
-                {lead.product} · {formatNumber(lead.amount)} Frascos
+              <div className="flex items-center gap-2 text-xs text-[#666]">
+                <ProductBadge product={lead.product} />
+                <span>· {formatNumber(lead.amount)} Frascos</span>
               </div>
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[11px] text-[#555]">{formatDateLong(lead.date)}</span>
@@ -137,7 +139,9 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
       <td className="px-4 py-3.5 text-[#ddd]">{lead.name}</td>
       <td className="px-4 py-3.5 text-[#aaa] font-mono text-xs">{lead.number}</td>
       <td className="px-4 py-3.5 text-[#ddd]">{lead.email}</td>
-      <td className="px-4 py-3.5 text-[#aaa]">{lead.product}</td>
+      <td className="px-4 py-3.5">
+        <ProductBadge product={lead.product} />
+      </td>
       <td className="px-4 py-3.5 text-[#aaa]">{formatNumber(lead.amount)} Frascos</td>
       <td className="px-4 py-3.5">
         <ChannelBadge />
@@ -146,6 +150,18 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
         {formatCurrency(lead.recoveredValue)}
       </td>
     </tr>
+  );
+}
+
+function ProductBadge({ product }: { product: string }) {
+  const color = getProductColor(product ?? "");
+  return (
+    <span
+      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium truncate max-w-[160px]"
+      style={{ backgroundColor: color.bg, color: color.text }}
+    >
+      {product}
+    </span>
   );
 }
 
