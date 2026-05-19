@@ -9,10 +9,12 @@ export function AppLayout({
   title,
   children,
   showFilters = true,
+  showProductFilter = true,
 }: {
   title: string;
   children: ReactNode;
   showFilters?: boolean;
+  showProductFilter?: boolean;
 }) {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -75,7 +77,7 @@ export function AppLayout({
           <div className="w-5" />
         </div>
 
-        <PageHeader title={title} showFilters={showFilters} />
+        <PageHeader title={title} showFilters={showFilters} showProductFilter={showProductFilter} />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
       </div>
