@@ -71,6 +71,7 @@ function PipelinePage() {
         .select('id, name, number, product, status, "Event", created_at')
         .not("status", "is", null)
         .neq("status", "")
+        .neq("Event", "order_paid")
         .gte("created_at", fromIso)
         .lte("created_at", toIso)
         .order("created_at", { ascending: false });
@@ -102,6 +103,7 @@ function PipelinePage() {
             }
             const next = prev.filter((l) => l.id !== row.id);
             if (!row.status) return next;
+            if (row.Event === "order_paid") return next;
             if (row.created_at < fromIso || row.created_at > toIso) return next;
             const updated: PipelineLead = {
               id: row.id,
