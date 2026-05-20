@@ -1,13 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { AppLayout } from "@/components/AppLayout";
 import { getProductColor } from "@/lib/colors";
@@ -197,60 +190,115 @@ function PipelinePage() {
         </div>
       </div>
 
-      <div className="mt-6 surface-panel p-6">
-        <div className="mb-4">
-          <h2 className="text-sm font-semibold text-white">Distribuição por Status</h2>
-          <p className="text-xs text-[#555] mt-1">
-            Baseado nos leads exibidos no período selecionado
-          </p>
-        </div>
+      <StatusDistribution data={pieData} loading={loading} />
+    </AppLayout>
+  );
+}
 
-        {loading ? (
-          <div className="h-[360px] w-full rounded animate-pulse bg-white/[0.03]" />
-        ) : pieData.length === 0 ? (
-          <div className="h-[200px] flex items-center justify-center text-sm text-[#444]">
-            Nenhum lead no período
-          </div>
-        ) : (
-          <div style={{ width: "100%", height: 360 }}>
-            <ResponsiveContainer>
+interface StatusDatum {
+  status: string;
+  name: string;
+  value: number;
+  color: string;
+}
+
+function StatusTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const { name, value, percent } = payload[0].payload;
+  return (
+    <div className="bg-[#1a1a2e] border border-white/10 rounded-lg px-3 py-2 text-sm">
+      <p className="font-medium text-white">{name}</p>
+      <p className="text-gray-400">
+        {value} leads · {((percent ?? 0) * 100).toFixed(1)}%
+      </p>
+    </div>
+  );
+}
+
+function StatusDistribution({ data, loading }: { data: StatusDatum[]; loading: boolean }) {
+  const totalLeads = data.reduce((acc, d) => acc + d.value, 0);
+  const enriched = data.map((d) => ({
+    ...d,
+    percent: totalLeads ? d.value / totalLeads : 0,
+  }));
+
+  return (
+    <div className="mt-8 p-6 rounded-xl bg-white/5 border border-white/10">
+      <div className="mb-4">
+        <h2 className="text-base font-semibold text-white">Distribuição por Status</h2>
+        <p className="text-sm text-gray-400">Percentual de leads em cada coluna do pipeline</p>
+      </div>
+
+      {loading ? (
+        <div className="h-[300px] w-full rounded animate-pulse bg-white/[0.03]" />
+      ) : enriched.length === 0 ? (
+        <div className="h-[200px] flex items-center justify-center text-sm text-[#444]">
+          Nenhum lead no período
+        </div>
+      ) : (
+        <div className="flex flex-col lg:flex-row items-center gap-8">
+          <div className="w-full lg:w-[340px] h-[300px] flex-shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={pieData}
+                  data={enriched}
                   cx="50%"
                   cy="50%"
+                  innerRadius={80}
                   outerRadius={130}
+                  paddingAngle={2}
                   dataKey="value"
                   stroke="#0a0a0a"
                   strokeWidth={2}
-                  label={({ value, percent }) =>
-                    `${value} (${((percent ?? 0) * 100).toFixed(1)}%)`
-                  }
-                  labelLine={false}
                 >
-                  {pieData.map((entry) => (
+                  {enriched.map((entry) => (
                     <Cell key={entry.status} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#1a1a1a",
-                    border: "1px solid #2a2a2a",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(value, name) => [String(value), String(name)]}
-                />
-                <Legend
-                  wrapperStyle={{ fontSize: 12, color: "#aaa" }}
-                  iconType="circle"
-                />
+                <Tooltip content={<StatusTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        )}
-      </div>
-    </AppLayout>
+
+          <div className="flex-1 w-full">
+            <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">
+              {totalLeads} leads no total
+            </p>
+
+            <div className="space-y-2">
+              {enriched.map((item) => (
+                <div key={item.status} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="text-sm text-gray-300 truncate">{item.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="w-24 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${item.percent * 100}%`,
+                          backgroundColor: item.color,
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-white font-medium w-8 text-right">
+                      {item.value}
+                    </span>
+                    <span className="text-xs text-gray-400 w-12 text-right">
+                      {(item.percent * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
