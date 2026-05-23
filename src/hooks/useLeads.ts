@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC } from '@/lib/dates'
+import { parseCurrencyValue } from '@/lib/utils'
 
 const TABLE = 'obliviumdigital_nutra_br_CRM'
 
@@ -18,14 +19,10 @@ export interface LeadRow {
 
 const PER_PAGE = 20
 
-function parseNum(val: any): number {
+function parseAmount(val: any): number {
   if (val === null || val === undefined || val === '') return 0
   if (typeof val === 'number') return isNaN(val) ? 0 : val
-  let s = String(val).replace(/[^0-9.,\-]/g, '')
-  if (s.includes(',')) {
-    s = s.replace(/\./g, '').replace(',', '.')
-  }
-  const n = parseFloat(s)
+  const n = parseFloat(String(val))
   return isNaN(n) ? 0 : n
 }
 
@@ -74,8 +71,8 @@ export function useLeads(search: string, page: number) {
             number: r.number ?? '—',
             email: r.email ?? '—',
             product: r.product ?? '—',
-            amount: parseNum(r.amount),
-            recoveredValue: parseNum(r['($)']),
+            amount: parseAmount(r.amount),
+            recoveredValue: parseCurrencyValue(r['($)']),
           }))
 
         setRows(paged)

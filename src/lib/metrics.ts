@@ -1,3 +1,5 @@
+import { parseCurrencyValue } from './utils'
+
 export const COMMISSION_RATE = 0.10
 
 export interface CRMRow {
@@ -11,17 +13,6 @@ export interface CRMRow {
   utm_source?: string | null
   '($)'?: string | number | null
   status?: string | null
-}
-
-function parseNum(val: any): number {
-  if (val === null || val === undefined || val === '') return 0
-  if (typeof val === 'number') return isNaN(val) ? 0 : val
-  let s = String(val).replace(/[^0-9.,\-]/g, '')
-  if (s.includes(',')) {
-    s = s.replace(/\./g, '').replace(',', '.')
-  }
-  const n = parseFloat(s)
-  return isNaN(n) ? 0 : n
 }
 
 export function calcAbandonedCarts(rows: CRMRow[]): number {
@@ -49,14 +40,14 @@ export function calcConversionRate(recoveredSales: number, abandonedCarts: numbe
 export function calcTicketMedio(rows: CRMRow[]): number {
   const wppSales = rows.filter((r) => r.Event === 'order_paid' && (r.utm_source?.toUpperCase().includes('WPP') ?? false))
   if (!wppSales.length) return 0
-  const total = wppSales.reduce((acc, r) => acc + parseNum(r['($)']), 0)
+  const total = wppSales.reduce((acc, r) => acc + parseCurrencyValue(r['($)']), 0)
   return total / wppSales.length
 }
 
 export function calcValorRecuperado(rows: CRMRow[]): number {
   return rows
     .filter((r) => r.Event === 'order_paid' && (r.utm_source?.toUpperCase().includes('WPP') ?? false))
-    .reduce((acc, r) => acc + parseNum(r['($)']), 0)
+    .reduce((acc, r) => acc + parseCurrencyValue(r['($)']), 0)
 }
 
 export function calcComissaoLumix(valorRecuperado: number): number {
@@ -70,7 +61,7 @@ export function calcFaturamentoFront(rows: CRMRow[]): number {
         r.Event === 'order_paid' &&
         !(r.utm_source?.toUpperCase().includes('WPP') ?? false),
     )
-    .reduce((acc, r) => acc + parseNum(r['($)']), 0)
+    .reduce((acc, r) => acc + parseCurrencyValue(r['($)']), 0)
 }
 
 export function calcFaturamentoSobFront(valorRecuperado: number, faturamentoFront: number): number {

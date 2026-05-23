@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC, utcToLocalDateStr, getDaysInRange } from '@/lib/dates'
+import { parseCurrencyValue } from '@/lib/utils'
 
 const TABLE = 'obliviumdigital_nutra_br_CRM'
 
@@ -9,17 +10,6 @@ export interface ChartPoint {
   date: string
   sales: number
   value: number
-}
-
-function parseNum(val: any): number {
-  if (val === null || val === undefined || val === '') return 0
-  if (typeof val === 'number') return isNaN(val) ? 0 : val
-  let s = String(val).replace(/[^0-9.,\-]/g, '')
-  if (s.includes(',')) {
-    s = s.replace(/\./g, '').replace(',', '.')
-  }
-  const n = parseFloat(s)
-  return isNaN(n) ? 0 : n
 }
 
 export function useChartData() {
@@ -52,7 +42,7 @@ export function useChartData() {
           const day = utcToLocalDateStr(r.created_at)
           if (!map[day]) map[day] = { sales: 0, value: 0 }
           map[day].sales++
-          map[day].value += parseNum(r['($)'])
+          map[day].value += parseCurrencyValue(r['($)'])
         })
 
         const points: ChartPoint[] = Object.entries(map)
