@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC } from '@/lib/dates'
+import { fetchAll } from '@/lib/fetchAll'
 import {
   calcAbandonedCarts,
   calcResponseRate,
@@ -59,19 +60,17 @@ export function useMetrics() {
 
         const productFilter = product && product !== 'Todos' ? product : null
 
-        let q = supabase
-          .from(TABLE)
-          .select('"Event", utm_source, status, "($)"')
-          .gte('created_at', from)
-          .lte('created_at', to)
-        if (productFilter) q = q.eq('product', productFilter)
+        const rows = await fetchAll<CRMRow>(() => {
+          let q = supabase
+            .from(TABLE)
+            .select('"Event", utm_source, status, "($)"')
+            .gte('created_at', from)
+            .lte('created_at', to)
+          if (productFilter) q = q.eq('product', productFilter)
+          return q
+        })
 
-        const rowsRes = await q
-
-        if ((rowsRes as any).error) throw (rowsRes as any).error
         if (cancelled) return
-
-        const rows = ((rowsRes as any).data ?? []) as CRMRow[]
 
         const carrinhosAbandonados = calcAbandonedCarts(rows)
         const taxaResposta = calcResponseRate(rows)

@@ -8,6 +8,7 @@ import { getEventLabel } from "@/lib/eventLabels";
 import { STATUS_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/statusLabels";
 import { useFilters } from "@/hooks/useFilters";
 import { startOfDayUTC, endOfDayUTC } from "@/lib/dates";
+import { fetchAll } from "@/lib/fetchAll";
 
 export const Route = createFileRoute("/pipeline")({
   head: () => ({
@@ -59,24 +60,26 @@ function PipelinePage() {
 
     async function load() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from(TABLE)
-        .select('id, name, number, product, status, "Event", created_at')
-        .not("status", "is", null)
-        .neq("status", "")
-        .neq("Event", "order_paid")
-        .gte("created_at", fromIso)
-        .lte("created_at", toIso)
-        .order("created_at", { ascending: false });
-
-      if (cancelled) return;
-      if (error) {
-        console.error(error);
-        setLeads([]);
-      } else {
-        setLeads((data ?? []) as PipelineLead[]);
+      try {
+        const data = await fetchAll<PipelineLead>(() =>
+          supabase
+            .from(TABLE)
+            .select('id, name, number, product, status, "Event", created_at')
+            .not("status", "is", null)
+            .neq("status", "")
+            .neq("Event", "order_paid")
+            .gte("created_at", fromIso)
+            .lte("created_at", toIso)
+            .order("created_at", { ascending: false }),
+        );
+        if (cancelled) return;
+        setLeads(data);
+      } catch (err) {
+        console.error(err);
+        if (!cancelled) setLeads([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
 
     load();
