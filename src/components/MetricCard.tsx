@@ -5,6 +5,7 @@ interface MetricCardProps {
   label: string;
   value: ReactNode;
   subInfo?: ReactNode;
+  breakdown?: ReactNode;
   icon?: LucideIcon;
   loading?: boolean;
   variant?: "default" | "brand" | "brand2" | "success";
@@ -16,6 +17,7 @@ export function MetricCard({
   label,
   value,
   subInfo,
+  breakdown,
   icon: Icon,
   loading,
   variant = "default",
@@ -85,6 +87,7 @@ export function MetricCard({
             {value}
           </div>
           {subInfo && <div className="mt-2 text-xs text-[#555]">{subInfo}</div>}
+          {breakdown}
         </>
       )}
     </div>

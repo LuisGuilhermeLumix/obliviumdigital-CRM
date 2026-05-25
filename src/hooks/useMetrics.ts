@@ -13,10 +13,20 @@ import {
   calcComissaoLumix,
   calcFaturamentoFront,
   calcFaturamentoSobFront,
+  calcLeadsByEvent,
+  calcResponseRateByEvent,
+  calcRecoveredSalesByEvent,
+  calcConversionRateByEvent,
+  calcTicketMedioByEvent,
+  calcValorRecuperadoByEvent,
+  calcFaturamentoSobFrontByEvent,
   CRMRow,
 } from '@/lib/metrics'
+import { EventKey, EVENT_KEYS } from '@/lib/eventLabels'
 
 const TABLE = 'obliviumdigital_nutra_br_CRM'
+
+type ByEvent = Record<EventKey, number>
 
 export interface DashboardMetrics {
   carrinhosAbandonados: number
@@ -28,7 +38,19 @@ export interface DashboardMetrics {
   faturamentoFront: number
   comissaoLumix: number
   faturamentoSobFrontPct: number
+  leadsByEvent: ByEvent
+  responseRateByEvent: ByEvent
+  recoveredByEvent: ByEvent
+  conversionByEvent: ByEvent
+  ticketByEvent: ByEvent
+  valorByEvent: ByEvent
+  frontByEvent: ByEvent
 }
+
+const zeroByEvent: ByEvent = EVENT_KEYS.reduce((acc, k) => {
+  acc[k] = 0
+  return acc
+}, {} as ByEvent)
 
 const zero: DashboardMetrics = {
   carrinhosAbandonados: 0,
@@ -40,6 +62,13 @@ const zero: DashboardMetrics = {
   faturamentoFront: 0,
   comissaoLumix: 0,
   faturamentoSobFrontPct: 0,
+  leadsByEvent: { ...zeroByEvent },
+  responseRateByEvent: { ...zeroByEvent },
+  recoveredByEvent: { ...zeroByEvent },
+  conversionByEvent: { ...zeroByEvent },
+  ticketByEvent: { ...zeroByEvent },
+  valorByEvent: { ...zeroByEvent },
+  frontByEvent: { ...zeroByEvent },
 }
 
 export function useMetrics() {
@@ -82,6 +111,14 @@ export function useMetrics() {
         const comissaoLumix = calcComissaoLumix(valorRecuperado)
         const faturamentoSobFrontPct = calcFaturamentoSobFront(valorRecuperado, faturamentoFront)
 
+        const leadsByEvent = calcLeadsByEvent(rows)
+        const responseRateByEvent = calcResponseRateByEvent(rows)
+        const recoveredByEvent = calcRecoveredSalesByEvent(rows)
+        const conversionByEvent = calcConversionRateByEvent(recoveredByEvent, leadsByEvent)
+        const ticketByEvent = calcTicketMedioByEvent(rows)
+        const valorByEvent = calcValorRecuperadoByEvent(rows)
+        const frontByEvent = calcFaturamentoSobFrontByEvent(valorByEvent, faturamentoFront)
+
         setMetrics({
           carrinhosAbandonados,
           taxaResposta,
@@ -92,6 +129,13 @@ export function useMetrics() {
           faturamentoFront,
           comissaoLumix,
           faturamentoSobFrontPct,
+          leadsByEvent,
+          responseRateByEvent,
+          recoveredByEvent,
+          conversionByEvent,
+          ticketByEvent,
+          valorByEvent,
+          frontByEvent,
         })
       } catch (e: any) {
         if (!cancelled) setError(e.message ?? 'Erro ao buscar dados')

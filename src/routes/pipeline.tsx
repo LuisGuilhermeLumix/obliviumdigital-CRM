@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { supabase } from "@/lib/supabase";
 import { AppLayout } from "@/components/AppLayout";
+import { ChevronDown } from "lucide-react";
 import { getProductColor } from "@/lib/colors";
-import { getEventLabel } from "@/lib/eventLabels";
+import { EVENT_CONFIG, EVENT_KEYS, EventKey, getEventLabel } from "@/lib/eventLabels";
 import { STATUS_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/statusLabels";
 import { useFilters } from "@/hooks/useFilters";
 import { startOfDayUTC, endOfDayUTC } from "@/lib/dates";
@@ -50,6 +51,8 @@ function formatCreatedAt(iso: string): string {
 
 function PipelinePage() {
   const { dateFrom, dateTo } = useFilters();
+  const [eventFilter, setEventFilter] = useState<EventKey | "all">("all");
+  const [eventOpen, setEventOpen] = useState(false);
   const [leads, setLeads] = useState<PipelineLead[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,12 +60,13 @@ function PipelinePage() {
     let cancelled = false;
     const fromIso = startOfDayUTC(dateFrom);
     const toIso = endOfDayUTC(dateTo);
+    const currentEventFilter = eventFilter;
 
     async function load() {
       setLoading(true);
       try {
-        const data = await fetchAll<PipelineLead>(() =>
-          supabase
+        const data = await fetchAll<PipelineLead>(() => {
+          let q = supabase
             .from(TABLE)
             .select('id, name, number, product, status, "Event", created_at')
             .not("status", "is", null)
@@ -70,8 +74,12 @@ function PipelinePage() {
             .neq("Event", "order_paid")
             .gte("created_at", fromIso)
             .lte("created_at", toIso)
-            .order("created_at", { ascending: false }),
-        );
+            .order("created_at", { ascending: false });
+          if (currentEventFilter !== "all") {
+            q = q.eq("Event", currentEventFilter);
+          }
+          return q;
+        });
         if (cancelled) return;
         setLeads(data);
       } catch (err) {
@@ -100,6 +108,7 @@ function PipelinePage() {
             const next = prev.filter((l) => l.id !== row.id);
             if (!row.status) return next;
             if (row.Event === "order_paid") return next;
+            if (currentEventFilter !== "all" && row.Event !== currentEventFilter) return next;
             if (row.created_at < fromIso || row.created_at > toIso) return next;
             const updated: PipelineLead = {
               id: row.id,
@@ -125,7 +134,7 @@ function PipelinePage() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, eventFilter]);
 
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -142,8 +151,56 @@ function PipelinePage() {
       .sort((a, b) => b.value - a.value);
   }, [leads]);
 
+  const currentEventLabel =
+    eventFilter === "all" ? "Todos" : EVENT_CONFIG[eventFilter].label;
+
   return (
     <AppLayout title="Pipeline (Leads)" showProductFilter={false}>
+      <div className="mb-4 flex items-center gap-2">
+        <div className="relative">
+          <button
+            onClick={() => setEventOpen((v) => !v)}
+            className="h-9 flex items-center gap-2 px-3.5 rounded-lg bg-[#111] border border-[#222] text-[#ccc] text-sm hover:border-[#2a2a2a] transition-colors"
+          >
+            <span className="text-[#666] text-xs">Evento:</span>
+            <span className="text-xs">{currentEventLabel}</span>
+            <ChevronDown size={12} className="text-[#666]" />
+          </button>
+          {eventOpen && (
+            <div className="absolute left-0 mt-1.5 w-56 rounded-lg bg-[#0f0f0f] border border-[#1e1e1e] py-1 shadow-lg z-50">
+              <button
+                onClick={() => {
+                  setEventFilter("all");
+                  setEventOpen(false);
+                }}
+                className="w-full text-left px-3 py-1.5 text-sm text-[#ccc] hover:bg-[#161616] transition-colors"
+              >
+                Todos
+              </button>
+              {EVENT_KEYS.map((key) => {
+                const cfg = EVENT_CONFIG[key];
+                return (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setEventFilter(key);
+                      setEventOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-sm text-[#ccc] hover:bg-[#161616] transition-colors flex items-center gap-2"
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: cfg.color }}
+                    />
+                    {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="-mx-4 md:-mx-6 px-4 md:px-6 overflow-x-auto pb-4">
         <div className="flex gap-3 min-w-max">
           {STATUS_ORDER.map((statusKey) => {
