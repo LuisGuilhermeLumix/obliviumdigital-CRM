@@ -1,7 +1,7 @@
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -9,27 +9,45 @@ import {
 } from "recharts";
 import { useChartData } from "@/hooks/useChartData";
 import { formatDateShort, formatDateLong, formatCurrency } from "@/lib/format";
+import { EVENT_CONFIG, EVENT_KEYS } from "@/lib/eventLabels";
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload || !payload.length) return null;
+  const point = payload[0]?.payload;
+  if (!point) return null;
 
-  const salesEntry = payload.find((p: any) => p.dataKey === "sales");
-  const data = payload[0]?.payload;
-  const value = data?.value ?? 0;
+  const total = EVENT_KEYS.reduce((s, k) => s + (point[k] ?? 0), 0);
 
   return (
-    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs shadow-lg min-w-[160px]">
+    <div className="rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] px-4 py-3 text-xs shadow-lg min-w-[220px]">
       <p className="mb-2.5 text-[#666] font-medium">{formatDateLong(label)}</p>
 
-      {salesEntry && (
-        <div>
-          <div className="flex items-center justify-between gap-4">
-            <span style={{ color: "#22c55e" }}>● Carrinho Abandonado</span>
-            <span className="text-white font-semibold">{salesEntry.value} vendas</span>
+      {EVENT_KEYS.map((key) => {
+        const cfg = EVENT_CONFIG[key];
+        const sales = point[key] ?? 0;
+        const value = point.valueByEvent?.[key] ?? 0;
+        if (!sales && !value) return null;
+        return (
+          <div key={key} className="mb-1.5 last:mb-0">
+            <div className="flex items-center justify-between gap-4">
+              <span style={{ color: cfg.color }}>● {cfg.label}</span>
+              <span className="text-white font-semibold">{sales} vendas</span>
+            </div>
+            <div className="flex justify-end">
+              <span style={{ color: cfg.color }} className="font-medium">
+                {formatCurrency(value)}
+              </span>
+            </div>
           </div>
-          <div className="flex justify-end">
-            <span className="text-[#22c55e] font-medium">{formatCurrency(value)}</span>
-          </div>
+        );
+      })}
+
+      {total > 0 && (
+        <div className="mt-2 pt-2 border-t border-[#2a2a2a] flex items-center justify-between">
+          <span className="text-[#555]">Total</span>
+          <span className="text-white font-semibold">
+            {formatCurrency(point.value ?? 0)}
+          </span>
         </div>
       )}
     </div>
@@ -51,37 +69,31 @@ export function RecoveryChart() {
 
   return (
     <div className="surface-panel p-6">
-      <div className="flex items-start justify-between mb-5">
+      <div className="flex items-start justify-between mb-5 flex-wrap gap-3">
         <div>
           <h2 className="text-sm font-semibold text-white">
             Recuperações ao longo do tempo
           </h2>
           <p className="text-xs text-[#555] mt-1">
-            Vendas recuperadas via WhatsApp por dia
+            Vendas recuperadas por dia, separadas por evento de origem
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <LegendDot color="#22c55e" label="Carrinho Abandonado" />
+        <div className="flex items-center gap-4 flex-wrap">
+          {EVENT_KEYS.map((key) => (
+            <LegendDot key={key} color={EVENT_CONFIG[key].color} label={EVENT_CONFIG[key].label} />
+          ))}
         </div>
       </div>
 
-      <div style={{ width: "100%", height: typeof window !== "undefined" && window.innerWidth < 768 ? 160 : 220 }}>
+      <div
+        style={{
+          width: "100%",
+          height: typeof window !== "undefined" && window.innerWidth < 768 ? 180 : 240,
+        }}
+      >
         <ResponsiveContainer>
-          <AreaChart
-            data={data}
-            margin={{ top: 5, right: 8, left: -20, bottom: 0 }}
-          >
-            <defs>
-              <linearGradient id="wppFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.18} />
-                <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              vertical={false}
-              stroke="#1a1a1a"
-              strokeDasharray="3 3"
-            />
+          <LineChart data={data} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="#1a1a1a" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
               stroke="#444"
@@ -90,25 +102,21 @@ export function RecoveryChart() {
               axisLine={false}
               tickFormatter={(v) => formatDateShort(v)}
             />
-            <YAxis
-              stroke="#444"
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-            />
-            <Tooltip
-              content={<CustomTooltip />}
-              cursor={{ stroke: "#2a2a2a", strokeWidth: 1 }}
-            />
-            <Area
-              type="monotone"
-              dataKey="sales"
-              stroke="#22c55e"
-              strokeWidth={2}
-              fill="url(#wppFill)"
-              activeDot={{ r: 4, strokeWidth: 0 }}
-            />
-          </AreaChart>
+            <YAxis stroke="#444" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#2a2a2a", strokeWidth: 1 }} />
+            {EVENT_KEYS.map((key) => (
+              <Line
+                key={key}
+                type="monotone"
+                dataKey={key}
+                name={EVENT_CONFIG[key].label}
+                stroke={EVENT_CONFIG[key].color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 0 }}
+              />
+            ))}
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>

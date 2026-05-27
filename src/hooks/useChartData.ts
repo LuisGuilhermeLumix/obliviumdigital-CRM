@@ -4,13 +4,25 @@ import { useFilters } from './useFilters'
 import { startOfDayUTC, endOfDayUTC, utcToLocalDateStr, getDaysInRange } from '@/lib/dates'
 import { parseCurrencyValue } from '@/lib/utils'
 import { fetchAll } from '@/lib/fetchAll'
+import { EVENT_KEYS, EventKey, getEventFromUtmSource } from '@/lib/eventLabels'
 
 const TABLE = 'obliviumdigital_nutra_br_CRM'
 
-export interface ChartPoint {
+type EventValues = Record<EventKey, number>
+
+export interface ChartPoint extends EventValues {
   date: string
   sales: number
   value: number
+  // valores agregados por evento (para tooltip futuro)
+  valueByEvent: EventValues
+}
+
+function emptyEventValues(): EventValues {
+  return EVENT_KEYS.reduce((acc, k) => {
+    acc[k] = 0
+    return acc
+  }, {} as EventValues)
 }
 
 export function useChartData() {
@@ -22,10 +34,14 @@ export function useChartData() {
     async function load() {
       setLoading(true)
       try {
-        const rows = await fetchAll<{ created_at: string; '($)': string | number | null }>(() => {
+        const rows = await fetchAll<{
+          created_at: string
+          utm_source: string | null
+          '($)': string | number | null
+        }>(() => {
           let q = supabase
             .from(TABLE)
-            .select('created_at, "($)"')
+            .select('created_at, utm_source, "($)"')
             .gte('created_at', startOfDayUTC(dateFrom))
             .lte('created_at', endOfDayUTC(dateTo))
             .eq('Event', 'order_paid')
@@ -35,20 +51,44 @@ export function useChartData() {
           return q
         })
 
-        const map: Record<string, { sales: number; value: number }> = {}
+        const map: Record<string, { sales: number; value: number; counts: EventValues; values: EventValues }> = {}
         for (const day of getDaysInRange(dateFrom, dateTo)) {
-          map[day] = { sales: 0, value: 0 }
+          map[day] = {
+            sales: 0,
+            value: 0,
+            counts: emptyEventValues(),
+            values: emptyEventValues(),
+          }
         }
         rows.forEach((r) => {
           const day = utcToLocalDateStr(r.created_at)
-          if (!map[day]) map[day] = { sales: 0, value: 0 }
+          if (!map[day]) {
+            map[day] = {
+              sales: 0,
+              value: 0,
+              counts: emptyEventValues(),
+              values: emptyEventValues(),
+            }
+          }
+          const v = parseCurrencyValue(r['($)'])
           map[day].sales++
-          map[day].value += parseCurrencyValue(r['($)'])
+          map[day].value += v
+          const key = getEventFromUtmSource(r.utm_source)
+          if (key) {
+            map[day].counts[key]++
+            map[day].values[key] += v
+          }
         })
 
         const points: ChartPoint[] = Object.entries(map)
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([date, vals]) => ({ date, ...vals }))
+          .map(([date, vals]) => ({
+            date,
+            sales: vals.sales,
+            value: vals.value,
+            ...vals.counts,
+            valueByEvent: vals.values,
+          }))
 
         setData(points)
       } catch {

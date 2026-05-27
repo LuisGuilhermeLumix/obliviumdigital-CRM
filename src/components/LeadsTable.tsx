@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
 import { useLeads, LeadRow } from "@/hooks/useLeads";
 import { formatCurrency, formatDateLong, formatNumber } from "@/lib/format";
 import { getProductColor } from "@/lib/colors";
+import { EVENT_CONFIG, getEventFromUtmSource } from "@/lib/eventLabels";
 
 export function LeadsTable() {
   const [search, setSearch] = useState("");
@@ -90,7 +91,7 @@ export function LeadsTable() {
             <div key={lead.id} className="p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[13px] font-medium text-white truncate">{lead.name}</span>
-                <ChannelBadge />
+                <ChannelBadge utmSource={lead.utm_source} />
               </div>
               <div className="text-xs text-[#888] font-mono truncate">{lead.number}</div>
               <div className="text-xs text-[#888] truncate">{lead.email}</div>
@@ -144,7 +145,7 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
       </td>
       <td className="px-4 py-3.5 text-[#aaa]">{formatNumber(lead.amount)} Frascos</td>
       <td className="px-4 py-3.5">
-        <ChannelBadge />
+        <ChannelBadge utmSource={lead.utm_source} />
       </td>
       <td className="px-4 py-3.5 text-white font-medium">
         {formatCurrency(lead.recoveredValue)}
@@ -165,13 +166,22 @@ function ProductBadge({ product }: { product: string }) {
   );
 }
 
-export function ChannelBadge() {
+export function ChannelBadge({ utmSource }: { utmSource: string | null }) {
+  const key = getEventFromUtmSource(utmSource);
+  if (!key) {
+    return <span className="text-[#555] text-xs">—</span>;
+  }
+  const cfg = EVENT_CONFIG[key];
   return (
     <span
-      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold"
-      style={{ backgroundColor: "rgba(34,197,94,0.10)", color: "#22c55e" }}
+      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium whitespace-nowrap"
+      style={{
+        backgroundColor: cfg.color + "22",
+        color: cfg.color,
+        border: `1px solid ${cfg.color}44`,
+      }}
     >
-      WPP
+      {cfg.label}
     </span>
   );
 }
