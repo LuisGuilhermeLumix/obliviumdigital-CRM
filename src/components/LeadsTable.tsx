@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Inbox, Search } from "lucide-react";
+import { useFilters } from "@/hooks/useFilters";
 import { useLeads, LeadRow } from "@/hooks/useLeads";
 import { formatCurrency, formatDateLong, formatNumber } from "@/lib/format";
 import { getProductColor } from "@/lib/colors";
@@ -10,6 +11,13 @@ export function LeadsTable() {
   const [page, setPage] = useState(1);
 
   const { rows: pageData, totalPages, loading } = useLeads(search, page);
+
+  // Mudou o período ou os produtos: volta pra primeira página,
+  // senão a lista pode ficar numa página que não existe mais.
+  const { dateFrom, dateTo, selectedProducts } = useFilters();
+  useEffect(() => {
+    setPage(1);
+  }, [dateFrom, dateTo, selectedProducts]);
 
   return (
     <div className="surface-panel p-6">

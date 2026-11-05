@@ -26,11 +26,15 @@ function emptyEventValues(): EventValues {
 }
 
 export function useChartData() {
-  const { dateFrom, dateTo, product } = useFilters()
+  const { dateFrom, dateTo, selectedProducts } = useFilters()
   const [data, setData] = useState<ChartPoint[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Com múltipla seleção o usuário dispara várias buscas em sequência;
+    // descarta respostas de buscas antigas para não sobrescrever a mais nova.
+    let cancelled = false
+
     async function load() {
       setLoading(true)
       try {
@@ -47,9 +51,12 @@ export function useChartData() {
             .eq('Event', 'order_paid')
             .ilike('utm_source', '%WPP%')
 
-          if (product && product !== 'Todos') q = q.eq('product', product)
+          // Array vazio = "Todos": sem filtro de produto
+          if (selectedProducts.length > 0) q = q.in('product', selectedProducts)
           return q
         })
+
+        if (cancelled) return
 
         const map: Record<string, { sales: number; value: number; counts: EventValues; values: EventValues }> = {}
         for (const day of getDaysInRange(dateFrom, dateTo)) {
@@ -92,13 +99,16 @@ export function useChartData() {
 
         setData(points)
       } catch {
-        setData([])
+        if (!cancelled) setData([])
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
-  }, [dateFrom, dateTo, product])
+    return () => {
+      cancelled = true
+    }
+  }, [dateFrom, dateTo, selectedProducts])
 
   return { data, loading }
 }

@@ -28,12 +28,15 @@ function parseAmount(val: any): number {
 }
 
 export function useLeads(search: string, page: number) {
-  const { dateFrom, dateTo, product } = useFilters()
+  const { dateFrom, dateTo, selectedProducts } = useFilters()
   const [rows, setRows] = useState<LeadRow[]>([])
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Descarta respostas de buscas antigas (ver useChartData).
+    let cancelled = false
+
     async function load() {
       setLoading(true)
       try {
@@ -50,7 +53,8 @@ export function useLeads(search: string, page: number) {
           .order('created_at', { ascending: false })
           .limit(50)
 
-        if (product && product !== 'Todos') q = q.eq('product', product)
+        // Array vazio = "Todos": sem filtro de produto
+        if (selectedProducts.length > 0) q = q.in('product', selectedProducts)
         if (search) {
           q = q.or(
             `email.ilike.%${search}%,name.ilike.%${search}%,number.ilike.%${search}%`,
@@ -59,6 +63,7 @@ export function useLeads(search: string, page: number) {
 
         const { data, error } = await q
         if (error) throw error
+        if (cancelled) return
 
         const all = (data ?? []) as any[]
         setTotalPages(Math.max(1, Math.ceil(all.length / PER_PAGE)))
@@ -80,13 +85,16 @@ export function useLeads(search: string, page: number) {
         setRows(paged)
       } catch (e) {
         console.error(e)
-        setRows([])
+        if (!cancelled) setRows([])
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
-  }, [dateFrom, dateTo, search, page, product])
+    return () => {
+      cancelled = true
+    }
+  }, [dateFrom, dateTo, search, page, selectedProducts])
 
   return { rows, totalPages, loading }
 }

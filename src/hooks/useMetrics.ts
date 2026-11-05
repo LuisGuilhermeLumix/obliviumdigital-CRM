@@ -72,7 +72,7 @@ const zero: DashboardMetrics = {
 }
 
 export function useMetrics() {
-  const { dateFrom, dateTo, product } = useFilters()
+  const { dateFrom, dateTo, selectedProducts } = useFilters()
   const [metrics, setMetrics] = useState<DashboardMetrics>(zero)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -87,15 +87,14 @@ export function useMetrics() {
         const from = startOfDayUTC(dateFrom)
         const to = endOfDayUTC(dateTo)
 
-        const productFilter = product && product !== 'Todos' ? product : null
-
         const rows = await fetchAll<CRMRow>(() => {
           let q = supabase
             .from(TABLE)
             .select('"Event", utm_source, status, "($)"')
             .gte('created_at', from)
             .lte('created_at', to)
-          if (productFilter) q = q.eq('product', productFilter)
+          // Array vazio = "Todos": sem filtro de produto
+          if (selectedProducts.length > 0) q = q.in('product', selectedProducts)
           return q
         })
 
@@ -148,7 +147,7 @@ export function useMetrics() {
     return () => {
       cancelled = true
     }
-  }, [dateFrom, dateTo, product])
+  }, [dateFrom, dateTo, selectedProducts])
 
   return { metrics, loading, error }
 }
