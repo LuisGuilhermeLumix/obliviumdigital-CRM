@@ -7,6 +7,7 @@ import {
   calcAbandonedCarts,
   calcResponseRate,
   calcRecoveredSales,
+  calcRecoveredUpsells,
   calcConversionRate,
   calcTicketMedio,
   calcValorRecuperado,
@@ -32,6 +33,7 @@ export interface DashboardMetrics {
   carrinhosAbandonados: number
   taxaResposta: number
   vendasRecuperadas: number
+  vendasRecuperadasUpsell: number
   taxaConversao: number
   ticketMedio: number
   valorRecuperado: number
@@ -56,6 +58,7 @@ const zero: DashboardMetrics = {
   carrinhosAbandonados: 0,
   taxaResposta: 0,
   vendasRecuperadas: 0,
+  vendasRecuperadasUpsell: 0,
   taxaConversao: 0,
   ticketMedio: 0,
   valorRecuperado: 0,
@@ -90,7 +93,7 @@ export function useMetrics() {
         const rows = await fetchAll<CRMRow>(() => {
           let q = supabase
             .from(TABLE)
-            .select('"Event", utm_source, status, "($)"')
+            .select('"Event", utm_source, status, upsell, "($)"')
             .gte('created_at', from)
             .lte('created_at', to)
           // Array vazio = "Todos": sem filtro de produto
@@ -103,6 +106,7 @@ export function useMetrics() {
         const carrinhosAbandonados = calcAbandonedCarts(rows)
         const taxaResposta = calcResponseRate(rows)
         const vendasRecuperadas = calcRecoveredSales(rows)
+        const vendasRecuperadasUpsell = calcRecoveredUpsells(rows)
         const taxaConversao = calcConversionRate(vendasRecuperadas, carrinhosAbandonados)
         const ticketMedio = calcTicketMedio(rows)
         const valorRecuperado = calcValorRecuperado(rows)
@@ -122,6 +126,7 @@ export function useMetrics() {
           carrinhosAbandonados,
           taxaResposta,
           vendasRecuperadas,
+          vendasRecuperadasUpsell,
           taxaConversao,
           ticketMedio,
           valorRecuperado,

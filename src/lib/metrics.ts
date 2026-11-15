@@ -14,6 +14,7 @@ export interface CRMRow {
   utm_source?: string | null
   '($)'?: string | number | null
   status?: string | null
+  upsell?: boolean | null
 }
 
 export function calcAbandonedCarts(rows: CRMRow[]): number {
@@ -31,6 +32,17 @@ export function calcResponseRate(rows: CRMRow[]): number {
 
 export function calcRecoveredSales(rows: CRMRow[]): number {
   return rows.filter((r) => r.Event === 'order_paid' && (r.utm_source?.toUpperCase().includes('WPP') ?? false)).length
+}
+
+// Quantas das vendas recuperadas são upsell. É só um recorte informativo:
+// os upsells já estão dentro de calcRecoveredSales, não somam por fora.
+export function calcRecoveredUpsells(rows: CRMRow[]): number {
+  return rows.filter(
+    (r) =>
+      r.Event === 'order_paid' &&
+      (r.utm_source?.toUpperCase().includes('WPP') ?? false) &&
+      r.upsell === true,
+  ).length
 }
 
 export function calcConversionRate(recoveredSales: number, abandonedCarts: number): number {

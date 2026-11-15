@@ -4,7 +4,13 @@ import { useFilters } from "@/hooks/useFilters";
 import { useLeads, LeadRow } from "@/hooks/useLeads";
 import { formatCurrency, formatDateLong, formatNumber } from "@/lib/format";
 import { getProductColor } from "@/lib/colors";
-import { EVENT_CONFIG, getEventFromUtmSource } from "@/lib/eventLabels";
+import {
+  CanalRow,
+  EVENT_CONFIG,
+  UPSELL_SEPARATOR,
+  getCanalLabel,
+  getEventFromUtmSource,
+} from "@/lib/eventLabels";
 
 export function LeadsTable() {
   const [search, setSearch] = useState("");
@@ -97,9 +103,9 @@ export function LeadsTable() {
         ) : (
           pageData.map((lead) => (
             <div key={lead.id} className="p-4 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[13px] font-medium text-white truncate">{lead.name}</span>
-                <ChannelBadge utmSource={lead.utm_source} />
+              <div className="flex items-start justify-between gap-2">
+                <span className="min-w-0 text-[13px] font-medium text-white truncate">{lead.name}</span>
+                <ChannelBadge row={lead} />
               </div>
               <div className="text-xs text-[#888] font-mono truncate">{lead.number}</div>
               <div className="text-xs text-[#888] truncate">{lead.email}</div>
@@ -153,7 +159,7 @@ function LeadRowItem({ lead }: { lead: LeadRow }) {
       </td>
       <td className="px-4 py-3.5 text-[#aaa]">{formatNumber(lead.amount)} Frascos</td>
       <td className="px-4 py-3.5">
-        <ChannelBadge utmSource={lead.utm_source} />
+        <ChannelBadge row={lead} />
       </td>
       <td className="px-4 py-3.5 text-white font-medium">
         {formatCurrency(lead.recoveredValue)}
@@ -174,22 +180,34 @@ function ProductBadge({ product }: { product: string }) {
   );
 }
 
-export function ChannelBadge({ utmSource }: { utmSource: string | null }) {
-  const key = getEventFromUtmSource(utmSource);
+export function ChannelBadge({ row }: { row: CanalRow }) {
+  const key = getEventFromUtmSource(row.utm_source);
+  const label = getCanalLabel(row);
   if (!key) {
-    return <span className="text-[#555] text-xs">—</span>;
+    return <span className="text-[#555] text-xs">{label}</span>;
   }
   const cfg = EVENT_CONFIG[key];
+  // O texto vem inteiro do getCanalLabel; aqui só separa o complemento
+  // (" / Upsell") para dar um peso mais leve dentro do mesmo badge.
+  const [canal, complemento] = label.split(UPSELL_SEPARATOR);
   return (
+    // No celular o badge pode quebrar entre o canal e o complemento (nunca
+    // corta o texto); na tabela do desktop fica sempre em uma linha.
     <span
-      className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium whitespace-nowrap"
+      className="inline-block max-w-full rounded-md px-2 py-0.5 text-[11px] font-medium text-right md:text-left md:whitespace-nowrap"
       style={{
         backgroundColor: cfg.color + "22",
         color: cfg.color,
         border: `1px solid ${cfg.color}44`,
       }}
     >
-      {cfg.label}
+      <span className="whitespace-nowrap">{canal}</span>
+      {complemento && (
+        <>
+          {" "}
+          <span className="whitespace-nowrap font-normal opacity-80">/ {complemento}</span>
+        </>
+      )}
     </span>
   );
 }

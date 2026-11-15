@@ -16,6 +16,7 @@ export interface LeadRow {
   amount: number
   recoveredValue: number
   utm_source: string | null
+  upsell: boolean
 }
 
 const PER_PAGE = 20
@@ -45,7 +46,7 @@ export function useLeads(search: string, page: number) {
 
         let q = supabase
           .from(TABLE)
-          .select('id, created_at, name, number, email, product, amount, utm_source, "($)"')
+          .select('id, created_at, name, number, email, product, amount, utm_source, upsell, "($)"')
           .gte('created_at', from)
           .lte('created_at', to)
           .eq('Event', 'order_paid')
@@ -80,6 +81,7 @@ export function useLeads(search: string, page: number) {
             amount: parseAmount(r.amount),
             recoveredValue: parseCurrencyValue(r['($)']),
             utm_source: r.utm_source ?? null,
+            upsell: r.upsell === true,
           }))
 
         setRows(paged)

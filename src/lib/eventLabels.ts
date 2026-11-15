@@ -17,6 +17,24 @@ export function getEventFromUtmSource(utmSource: string | null | undefined): Eve
   return null
 }
 
+export const UPSELL_SEPARATOR = ' / '
+export const UPSELL_LABEL = 'Upsell'
+
+export interface CanalRow {
+  utm_source: string | null | undefined
+  upsell?: boolean | null
+}
+
+/**
+ * Rótulo do canal de uma venda. O upsell é um complemento do canal, não um
+ * evento novo: mesma origem, só ganha o sufixo " / Upsell".
+ */
+export function getCanalLabel(row: CanalRow): string {
+  const key = getEventFromUtmSource(row.utm_source)
+  const base = key ? EVENT_CONFIG[key].label : '—'
+  return row.upsell ? `${base}${UPSELL_SEPARATOR}${UPSELL_LABEL}` : base
+}
+
 export function getEventLabel(event: string | null | undefined): { label: string; color: string } {
   if (!event) return { label: '—', color: '#888888' }
   const cfg = EVENT_CONFIG[event as EventKey]

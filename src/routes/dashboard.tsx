@@ -126,6 +126,7 @@ function DashboardPage() {
             variant="success"
             loading={loading}
             value={formatNumber(m.vendasRecuperadas)}
+            subInfo={`${formatNumber(m.vendasRecuperadas - m.vendasRecuperadasUpsell)} principais · ${formatNumber(m.vendasRecuperadasUpsell)} upsell`}
             breakdown={recoveredBreakdown}
           />
           <MetricCard
